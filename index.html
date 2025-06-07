@@ -71,20 +71,20 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    let itemToMonsters = {};
-    let monsterToItems = {};
-    let editingItem = null;
+    window.itemToMonsters = {};
+    window.monsterToItems = {};
+    window.editingItem = null;
 
     async function loadData() {
       const snapshot = await get(ref(db, '/'));
       const data = snapshot.val() || {};
-      itemToMonsters = data.itemToMonsters || {};
-      monsterToItems = data.monsterToItems || {};
+      window.itemToMonsters = data.itemToMonsters || {};
+      window.monsterToItems = data.monsterToItems || {};
       updateLists();
     }
 
     async function saveData() {
-      await set(ref(db, '/'), { itemToMonsters, monsterToItems });
+      await set(ref(db, '/'), { itemToMonsters: window.itemToMonsters, monsterToItems: window.monsterToItems });
     }
 
     window.addSingleEntry = async function () {
@@ -94,12 +94,12 @@
 
       const monsters = monstersStr.split("、").map(m => m.trim());
 
-      itemToMonsters[item] = monsters;
+      window.itemToMonsters[item] = monsters;
 
       monsters.forEach(monster => {
-        if (!monsterToItems[monster]) monsterToItems[monster] = [];
-        if (!monsterToItems[monster].includes(item)) {
-          monsterToItems[monster].push(item);
+        if (!window.monsterToItems[monster]) window.monsterToItems[monster] = [];
+        if (!window.monsterToItems[monster].includes(item)) {
+          window.monsterToItems[monster].push(item);
         }
       });
 
@@ -108,7 +108,7 @@
 
       document.getElementById("itemSingleInput").value = '';
       document.getElementById("monstersForItemInput").value = '';
-      editingItem = null;
+      window.editingItem = null;
     }
 
     function updateLists() {
@@ -117,17 +117,17 @@
       itemList.innerHTML = '';
       monsterList.innerHTML = '';
 
-      for (const item in itemToMonsters) {
+      for (const item in window.itemToMonsters) {
         const li = document.createElement("li");
-        li.innerHTML = `<span class='clickable' onclick="showResult('${item}', itemToMonsters['${item}'], 'item')">${item}</span>` +
+        li.innerHTML = `<span class='clickable' onclick="showResult('${item}', window.itemToMonsters['${item}'], 'item')">${item}</span>` +
                        `<span class='delete-btn' onclick="deleteItem('${item}')">[刪除]</span>` +
                        `<span class='delete-btn' onclick="editItem('${item}')">[修改]</span>`;
         itemList.appendChild(li);
       }
 
-      for (const monster in monsterToItems) {
+      for (const monster in window.monsterToItems) {
         const li = document.createElement("li");
-        li.innerHTML = `<span class='clickable' onclick="showResult('${monster}', monsterToItems['${monster}'], 'monster')">${monster}</span>` +
+        li.innerHTML = `<span class='clickable' onclick="showResult('${monster}', window.monsterToItems['${monster}'], 'monster')">${monster}</span>` +
                        `<span class='delete-btn' onclick="deleteMonster('${monster}')">[刪除]</span>`;
         monsterList.appendChild(li);
       }
@@ -154,9 +154,9 @@
     }
 
     window.handleClick = function (name, type) {
-      const list = type === 'item' ? itemToMonsters[name] : monsterToItems[name];
+      const list = type === 'item' ? window.itemToMonsters[name] : window.monsterToItems[name];
       if (list) {
-        showResult(name, list, type);
+        window.showResult(name, list, type);
       } else {
         document.getElementById("resultBox").innerHTML = `❌ 查無資料：${name}`;
       }
@@ -164,12 +164,12 @@
 
     window.deleteItem = async function (item) {
       if (confirm(`確定要刪除道具：${item}？`)) {
-        const monsters = itemToMonsters[item] || [];
-        delete itemToMonsters[item];
+        const monsters = window.itemToMonsters[item] || [];
+        delete window.itemToMonsters[item];
         monsters.forEach(monster => {
-          if (monsterToItems[monster]) {
-            monsterToItems[monster] = monsterToItems[monster].filter(i => i !== item);
-            if (monsterToItems[monster].length === 0) delete monsterToItems[monster];
+          if (window.monsterToItems[monster]) {
+            window.monsterToItems[monster] = window.monsterToItems[monster].filter(i => i !== item);
+            if (window.monsterToItems[monster].length === 0) delete window.monsterToItems[monster];
           }
         });
         await saveData();
@@ -180,12 +180,12 @@
 
     window.deleteMonster = async function (monster) {
       if (confirm(`確定要刪除怪物：${monster}？`)) {
-        const items = monsterToItems[monster] || [];
-        delete monsterToItems[monster];
+        const items = window.monsterToItems[monster] || [];
+        delete window.monsterToItems[monster];
         items.forEach(item => {
-          if (itemToMonsters[item]) {
-            itemToMonsters[item] = itemToMonsters[item].filter(m => m !== monster);
-            if (itemToMonsters[item].length === 0) delete itemToMonsters[item];
+          if (window.itemToMonsters[item]) {
+            window.itemToMonsters[item] = window.itemToMonsters[item].filter(m => m !== monster);
+            if (window.itemToMonsters[item].length === 0) delete window.itemToMonsters[item];
           }
         });
         await saveData();
@@ -195,16 +195,16 @@
     }
 
     window.editItem = function (item) {
-      const monsters = itemToMonsters[item];
+      const monsters = window.itemToMonsters[item];
       document.getElementById("itemSingleInput").value = item;
       document.getElementById("monstersForItemInput").value = monsters.join("、");
-      editingItem = item;
+      window.editingItem = item;
     }
 
     window.updateEntry = function () {
-      if (!editingItem) return alert("請先選擇要修改的道具");
-      deleteItem(editingItem).then(() => {
-        addSingleEntry();
+      if (!window.editingItem) return alert("請先選擇要修改的道具");
+      window.deleteItem(window.editingItem).then(() => {
+        window.addSingleEntry();
       });
     }
 
