@@ -2,15 +2,27 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8">
-  <title>打亂</title>
+  <title>掉落查詢系統</title>
   <style>
     body {
       font-family: sans-serif;
       margin: 20px;
+      background: #111;
+      color: #eee;
+    }
+    input, textarea, button {
+      font-size: 16px;
+      padding: 6px;
+      margin: 4px 0;
+    }
+    textarea {
+      width: 100%;
+      height: 60px;
     }
     .container {
       display: flex;
-      gap: 50px;
+      gap: 40px;
+      margin-top: 20px;
     }
     .list {
       width: 45%;
@@ -20,38 +32,55 @@
       padding: 0;
     }
     li {
-      margin: 5px 0;
-      cursor: pointer;
+      margin: 4px 0;
     }
     .clickable {
-      color: blue;
+      color: #4ae;
+      cursor: pointer;
       text-decoration: underline;
-    }
-    .result {
-      margin-top: 20px;
-      padding: 10px;
-      border: 1px solid #ccc;
-    }
-    textarea {
-      width: 100%;
-      height: 100px;
-    }
-    button {
-      margin-top: 10px;
-      margin-right: 10px;
     }
     .delete-btn {
       color: red;
       margin-left: 10px;
       cursor: pointer;
     }
-    img.item-icon {
-      vertical-align: middle;
+    .result {
+      margin-top: 30px;
+    }
+
+    /* 卡片風格 */
+    .card-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-top: 10px;
+    }
+    .card {
+      background: #1e1e1e;
+      color: white;
+      padding: 16px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.4);
+      width: 220px;
+    }
+    .card h4 {
+      margin-top: 0;
+      font-size: 18px;
+      border-bottom: 1px solid #555;
+      padding-bottom: 5px;
+    }
+    .card img {
       width: 32px;
       height: 32px;
+      vertical-align: middle;
       margin-right: 5px;
     }
+    .card li {
+      list-style: none;
+      margin: 6px 0;
+    }
   </style>
+
   <!-- Firebase SDK -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -62,7 +91,7 @@
       authDomain: "leeeo-91be5.firebaseapp.com",
       databaseURL: "https://leeeo-91be5-default-rtdb.firebaseio.com",
       projectId: "leeeo-91be5",
-      storageBucket: "leeeo-91be5.firebasestorage.app",
+      storageBucket: "leeeo-91be5.appspot.com",
       messagingSenderId: "770145678642",
       appId: "1:770145678642:web:88f73a986123350911532b",
       measurementId: "G-NGCR9KRKHK"
@@ -84,18 +113,19 @@
     }
 
     async function saveData() {
-      await set(ref(db, '/'), { itemToMonsters: window.itemToMonsters, monsterToItems: window.monsterToItems });
+      await set(ref(db, '/'), {
+        itemToMonsters: window.itemToMonsters,
+        monsterToItems: window.monsterToItems
+      });
     }
 
     window.addSingleEntry = async function () {
       const item = document.getElementById("itemSingleInput").value.trim();
       const monstersStr = document.getElementById("monstersForItemInput").value.trim();
       if (!item || !monstersStr) return;
-
       const monsters = monstersStr.split("、").map(m => m.trim());
 
       window.itemToMonsters[item] = monsters;
-
       monsters.forEach(monster => {
         if (!window.monsterToItems[monster]) window.monsterToItems[monster] = [];
         if (!window.monsterToItems[monster].includes(item)) {
@@ -105,62 +135,17 @@
 
       await saveData();
       updateLists();
-
       document.getElementById("itemSingleInput").value = '';
       document.getElementById("monstersForItemInput").value = '';
       window.editingItem = null;
-    }
+    };
 
-    function updateLists() {
-      const itemList = document.getElementById("itemList");
-      const monsterList = document.getElementById("monsterList");
-      itemList.innerHTML = '';
-      monsterList.innerHTML = '';
-
-      for (const item in window.itemToMonsters) {
-        const li = document.createElement("li");
-        li.innerHTML = `<span class='clickable' onclick="showResult('${item}', window.itemToMonsters['${item}'], 'item')">${item}</span>` +
-                       `<span class='delete-btn' onclick="deleteItem('${item}')">[刪除]</span>` +
-                       `<span class='delete-btn' onclick="editItem('${item}')">[修改]</span>`;
-        itemList.appendChild(li);
-      }
-
-      for (const monster in window.monsterToItems) {
-        const li = document.createElement("li");
-        li.innerHTML = `<span class='clickable' onclick="showResult('${monster}', window.monsterToItems['${monster}'], 'monster')">${monster}</span>` +
-                       `<span class='delete-btn' onclick="deleteMonster('${monster}')">[刪除]</span>`;
-        monsterList.appendChild(li);
-      }
-    }
-
-    window.showResult = function (name, list, type) {
-      const resultBox = document.getElementById("resultBox");
-      const label = type === 'item' ? '掉落怪物' : '掉落道具';
-
-      let html = `<strong>${name}</strong><br>🔗 ${label}：<ul>`;
-      list.forEach(e => {
-        if (type === 'monster') {
-          const match = e.match(/\((\d+)\)$/);
-          const id = match ? match[1] : null;
-          const icon = id ? `<img class='item-icon' src='https://maplestory.io/api/GMS/64/item/${id}/icon' alt='icon'>` : '';
-          html += `<li class='clickable' onclick="handleClick('${e}', 'item')">${icon}${e}</li>`;
-        } else {
-          html += `<li class='clickable' onclick="handleClick('${e}', 'monster')">${e}</li>`;
-        }
+    window.updateEntry = function () {
+      if (!window.editingItem) return alert("請先選擇要修改的道具");
+      window.deleteItem(window.editingItem).then(() => {
+        window.addSingleEntry();
       });
-      html += '</ul>';
-
-      resultBox.innerHTML = html;
-    }
-
-    window.handleClick = function (name, type) {
-      const list = type === 'item' ? window.itemToMonsters[name] : window.monsterToItems[name];
-      if (list) {
-        window.showResult(name, list, type);
-      } else {
-        document.getElementById("resultBox").innerHTML = `❌ 查無資料：${name}`;
-      }
-    }
+    };
 
     window.deleteItem = async function (item) {
       if (confirm(`確定要刪除道具：${item}？`)) {
@@ -176,7 +161,7 @@
         updateLists();
         document.getElementById("resultBox").innerHTML = '✅ 已刪除道具';
       }
-    }
+    };
 
     window.deleteMonster = async function (monster) {
       if (confirm(`確定要刪除怪物：${monster}？`)) {
@@ -192,21 +177,87 @@
         updateLists();
         document.getElementById("resultBox").innerHTML = '✅ 已刪除怪物';
       }
-    }
+    };
 
     window.editItem = function (item) {
       const monsters = window.itemToMonsters[item];
       document.getElementById("itemSingleInput").value = item;
       document.getElementById("monstersForItemInput").value = monsters.join("、");
       window.editingItem = item;
+    };
+
+    function updateLists() {
+      const itemList = document.getElementById("itemList");
+      const monsterList = document.getElementById("monsterList");
+      itemList.innerHTML = '';
+      monsterList.innerHTML = '';
+
+      for (const item in window.itemToMonsters) {
+        const li = document.createElement("li");
+        li.innerHTML = `<span class="clickable" onclick="handleClick('${item}', 'item')">${item}</span>` +
+                       `<span class='delete-btn' onclick="deleteItem('${item}')">[刪除]</span>` +
+                       `<span class='delete-btn' onclick="editItem('${item}')">[修改]</span>`;
+        itemList.appendChild(li);
+      }
+
+      for (const monster in window.monsterToItems) {
+        const li = document.createElement("li");
+        li.innerHTML = `<span class="clickable" onclick="handleClick('${monster}', 'monster')">${monster}</span>` +
+                       `<span class='delete-btn' onclick="deleteMonster('${monster}')">[刪除]</span>`;
+        monsterList.appendChild(li);
+      }
     }
 
-    window.updateEntry = function () {
-      if (!window.editingItem) return alert("請先選擇要修改的道具");
-      window.deleteItem(window.editingItem).then(() => {
-        window.addSingleEntry();
+    window.handleClick = function (name, type) {
+      const list = type === 'item' ? window.itemToMonsters[name] : window.monsterToItems[name];
+      if (list) {
+        window.showResult(name, list, type);
+      } else {
+        document.getElementById("resultBox").innerHTML = `❌ 查無資料：${name}`;
+      }
+    };
+
+    window.showResult = function (name, list, type) {
+      const resultBox = document.getElementById("resultBox");
+      const isItem = type === 'item';
+      const label = isItem ? '掉落怪物' : '掉落道具';
+
+      let html = `<h3>🔍 ${label}：<span style="color: #0af">${name}</span></h3><div class="card-grid">`;
+
+      list.forEach(entry => {
+        let id = null, img = '', subtitle = '';
+        if (!isItem) {
+          const match = entry.match(/\((\d+)\)$/);
+          if (match) {
+            id = match[1];
+            img = `<img src="https://maplestory.io/api/GMS/64/item/${id}/icon" alt="icon">`;
+            subtitle = `ID: ${id}`;
+          }
+        }
+        html += `
+          <div class="card">
+            <h4 class="clickable" onclick="handleClick('${entry}', '${isItem ? 'item' : 'monster'}')">${img}${entry}</h4>
+            ${subtitle ? `<div>${subtitle}</div>` : ''}
+          </div>
+        `;
       });
-    }
+
+      html += '</div>';
+      resultBox.innerHTML = html;
+    };
+
+    window.filterList = function () {
+      const keyword = document.getElementById("searchInput").value.trim();
+      const itemList = document.getElementById("itemList");
+      const monsterList = document.getElementById("monsterList");
+
+      [...itemList.children].forEach(li => {
+        li.style.display = li.innerText.includes(keyword) ? '' : 'none';
+      });
+      [...monsterList.children].forEach(li => {
+        li.style.display = li.innerText.includes(keyword) ? '' : 'none';
+      });
+    };
 
     loadData();
   </script>
@@ -214,16 +265,15 @@
 <body>
   <h1>道具與怪物掉落查詢系統</h1>
 
-  <div>
-    <h2>輸入資料</h2>
-    <p><strong>輸入一筆資料</strong></p>
-    <p>道具名稱(ID)：</p>
-    <textarea id="itemSingleInput" placeholder="道具"></textarea>
-    <p>掉落該道具的怪物（用、分隔）：</p>
-    <textarea id="monstersForItemInput" placeholder="怪物"></textarea>
-    <button onclick="addSingleEntry()">加入資料</button>
-    <button onclick="updateEntry()">更新資料</button>
-  </div>
+  <input type="text" id="searchInput" placeholder="🔍 搜尋道具或怪物..." oninput="filterList()" />
+
+  <h2>新增或修改資料</h2>
+  <p>道具名稱（含ID）：</p>
+  <textarea id="itemSingleInput" placeholder="上衣力量卷軸70%(2040406)"></textarea>
+  <p>掉落此道具的怪物（用、分隔）：</p>
+  <textarea id="monstersForItemInput" placeholder="蜈蚣大王、藍色蘑菇王、樹妖王"></textarea>
+  <button onclick="addSingleEntry()">加入資料</button>
+  <button onclick="updateEntry()">更新資料</button>
 
   <div class="container">
     <div class="list">
