@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>掉落查詢系統</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 20px;
+    }
+    .container {
+      display: flex;
+      gap: 50px;
+    }
+    .list {
+      width: 45%;
+    }
+    ul {
+      list-style: none;
+      padding: 0;
+    }
+    li {
+      margin: 5px 0;
+      cursor: pointer;
+      color: blue;
+      text-decoration: underline;
+    }
+    .result {
+      margin-top: 20px;
+      padding: 10px;
+      border: 1px solid #ccc;
+    }
+    textarea {
+      width: 100%;
+      height: 100px;
+    }
+    button {
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>道具與怪物掉落查詢系統</h1>
+
+  <div>
+    <h2>輸入資料</h2>
+    <p><strong>輸入一筆資料</strong></p>
+    <p>道具名稱(ID)：</p>
+    <textarea id="itemSingleInput" placeholder="上衣力量卷軸70%(2040406)"></textarea>
+    <p>掉落該道具的怪物（用、分隔）：</p>
+    <textarea id="monstersForItemInput" placeholder="蜈蚣大王、藍色蘑菇王、樹妖王"></textarea>
+    <button onclick="addSingleEntry()">加入資料</button>
+  </div>
+
+  <div class="container">
+    <div class="list">
+      <h3>📦 道具列表</h3>
+      <ul id="itemList"></ul>
+    </div>
+    <div class="list">
+      <h3>👾 怪物列表</h3>
+      <ul id="monsterList"></ul>
+    </div>
+  </div>
+
+  <div class="result" id="resultBox">
+    🔍 點擊道具或怪物查看相關資料
+  </div>
+
+  <script>
+    let itemToMonsters = {};
+    let monsterToItems = {};
+
+    function addSingleEntry() {
+      const item = document.getElementById("itemSingleInput").value.trim();
+      const monstersStr = document.getElementById("monstersForItemInput").value.trim();
+      if (!item || !monstersStr) return;
+
+      const monsters = monstersStr.split("、").map(m => m.trim());
+
+      if (!itemToMonsters[item]) itemToMonsters[item] = [];
+      monsters.forEach(monster => {
+        if (!itemToMonsters[item].includes(monster)) {
+          itemToMonsters[item].push(monster);
+        }
+        if (!monsterToItems[monster]) monsterToItems[monster] = [];
+        if (!monsterToItems[monster].includes(item)) {
+          monsterToItems[monster].push(item);
+        }
+      });
+
+      updateLists();
+
+      // 清空輸入欄
+      document.getElementById("itemSingleInput").value = '';
+      document.getElementById("monstersForItemInput").value = '';
+    }
+
+    function updateLists() {
+      const itemList = document.getElementById("itemList");
+      const monsterList = document.getElementById("monsterList");
+      itemList.innerHTML = '';
+      monsterList.innerHTML = '';
+
+      for (const item in itemToMonsters) {
+        const li = document.createElement("li");
+        li.textContent = item;
+        li.onclick = () => showResult(item, itemToMonsters[item], 'item');
+        itemList.appendChild(li);
+      }
+
+      for (const monster in monsterToItems) {
+        const li = document.createElement("li");
+        li.textContent = monster;
+        li.onclick = () => showResult(monster, monsterToItems[monster], 'monster');
+        monsterList.appendChild(li);
+      }
+    }
+
+    function showResult(name, list, type) {
+      const resultBox = document.getElementById("resultBox");
+      const label = type === 'item' ? '掉落怪物' : '掉落道具';
+      resultBox.innerHTML = `<strong>${name}</strong><br>🔗 ${label}：<ul>` +
+        list.map(e => `<li>${e}</li>`).join('') + '</ul>';
+    }
+  </script>
+</body>
+</html>
