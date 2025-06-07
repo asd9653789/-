@@ -67,9 +67,18 @@
       border-bottom: 1px solid #555;
       padding-bottom: 5px;
     }
-    .card img {
+    .item-icon {
       width: 32px;
       height: 32px;
+      vertical-align: middle;
+      margin-right: 5px;
+    }
+    .monster-icon {
+      width: 64px;
+      height: 64px;
+      vertical-align: middle;
+      margin-right: 5px;
+    }
       vertical-align: middle;
       margin-right: 5px;
     }
@@ -204,6 +213,54 @@
       }
     }
 
+    function getItemImage(entry) {
+      const match = entry.match(/\((\d+)\)$/);
+      if (!match) return '';
+      const id = match[1];
+      return `<img class="item-icon" src="https://maplestory.io/api/GMS/64/item/${id}/icon" alt="item">`;
+    }
+
+    function getMonsterImage(entry) {
+      const match = entry.match(/\((\d+)\)$/);
+      if (!match) return '';
+      const id = match[1];
+      return `<img class="monster-icon" src="https://maplestory.io/api/GMS/64/mob/${id}/icon" alt="monster">`;
+    }
+
+    window.showResult = function (name, list, type) {
+      const resultBox = document.getElementById("resultBox");
+      const isItem = type === 'item';
+      const label = isItem ? '掉落怪物' : '掉落道具';
+
+      resultBox.innerHTML = `<h3>🔍 ${label}：<span style="color:#0af">${name}</span></h3>`;
+
+      const grid = document.createElement("div");
+      grid.className = "card-grid";
+
+      list.forEach(entry => {
+        const card = document.createElement("div");
+        card.className = "card";
+
+        const h4 = document.createElement("h4");
+        h4.className = "clickable";
+        h4.innerHTML = `${isItem ? getMonsterImage(entry) : getItemImage(entry)}${entry}`;
+        h4.addEventListener("click", () => handleClick(entry, isItem ? 'monster' : 'item'));
+
+        card.appendChild(h4);
+
+        const match = entry.match(/\((\d+)\)$/);
+        if (match) {
+          const subtitle = document.createElement("div");
+          subtitle.textContent = `ID: ${match[1]}`;
+          card.appendChild(subtitle);
+        }
+
+        grid.appendChild(card);
+      });
+
+      resultBox.appendChild(grid);
+    };
+
     window.handleClick = function (name, type) {
       const list = type === 'item' ? window.itemToMonsters[name] : window.monsterToItems[name];
       if (list) {
@@ -212,61 +269,6 @@
         document.getElementById("resultBox").innerHTML = `❌ 查無資料：${name}`;
       }
     };
-
-    
-
-window.showResult = function (name, list, type) {
-  const resultBox = document.getElementById("resultBox");
-  const isItem = type === 'item';
-  const label = isItem ? '掉落怪物' : '掉落道具';
-
-  resultBox.innerHTML = `<h3>🔍 ${label}：<span style="color:#0af">${name}</span></h3>`;
-
-  const grid = document.createElement("div");
-  grid.className = "card-grid";
-
-  list.forEach(entry => {
-    const card = document.createElement("div");
-    card.className = "card";
-
-    const h4 = document.createElement("h4");
-    h4.className = "clickable";
-    h4.innerHTML = `${getEntryImage(entry, type)}${entry}`;
-    h4.addEventListener("click", () => handleClick(entry, isItem ? 'monster' : 'item'));
-
-    card.appendChild(h4);
-
-    const match = entry.match(/\((\d+)\)$/);
-    if (match) {
-      const subtitle = document.createElement("div");
-      subtitle.textContent = `ID: ${match[1]}`;
-      card.appendChild(subtitle);
-    }
-
-    grid.appendChild(card);
-  });
-
-  resultBox.appendChild(grid);
-};
-
-function getEntryImage(entry, type) {
-  const match = entry.match(/\((\d+)\)$/);
-  if (!match) return '';
-  const id = match[1];
-  const base = type === 'item'
-    ? 'https://maplestory.io/api/GMS/64/item/'
-    : 'https://maplestory.io/api/GMS/64/mob/';
-  return `<img src="${base}${id}/icon" alt="icon">`;
-}
-
-
-function getItemImage(entry) {
-  const match = entry.match(/\((\d+)\)$/);
-  if (!match) return '';
-  const id = match[1];
-  return `<img src="https://maplestory.io/api/GMS/64/item/${id}/icon" alt="icon">`;
-}
-
 
     window.filterList = function () {
       const keyword = document.getElementById("searchInput").value.trim();
@@ -286,14 +288,13 @@ function getItemImage(entry) {
 </head>
 <body>
   <h1>道具與怪物掉落查詢系統</h1>
-
   <input type="text" id="searchInput" placeholder="🔍 搜尋道具或怪物..." oninput="filterList()" />
 
   <h2>新增或修改資料</h2>
   <p>道具名稱（含ID）：</p>
   <textarea id="itemSingleInput" placeholder="上衣力量卷軸70%(2040406)"></textarea>
   <p>掉落此道具的怪物（用、分隔）：</p>
-  <textarea id="monstersForItemInput" placeholder="蜈蚣大王、藍色蘑菇王、樹妖王"></textarea>
+  <textarea id="monstersForItemInput" placeholder="藍色蘑菇王(8220007)、樹妖王(8220003)"></textarea>
   <button onclick="addSingleEntry()">加入資料</button>
   <button onclick="updateEntry()">更新資料</button>
 
