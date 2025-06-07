@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8">
-  <title>打亂</title>
+  <title>掉落查詢系統</title>
   <style>
     body {
       font-family: sans-serif;
@@ -47,8 +47,6 @@
     .result {
       margin-top: 30px;
     }
-
-    /* 卡片風格 */
     .card-grid {
       display: flex;
       flex-wrap: wrap;
@@ -80,8 +78,6 @@
       margin: 6px 0;
     }
   </style>
-
-  <!-- Firebase SDK -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
     import { getDatabase, ref, set, get } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
@@ -194,7 +190,7 @@
 
       for (const item in window.itemToMonsters) {
         const li = document.createElement("li");
-        li.innerHTML = `<span class="clickable" onclick="handleClick('${item}', 'item')">${item}</span>` +
+        li.innerHTML = `<span class="clickable" onclick="handleClick(decodeURIComponent('${encodeURIComponent(item)}'), 'item')">${item}</span>` +
                        `<span class='delete-btn' onclick="deleteItem('${item}')">[刪除]</span>` +
                        `<span class='delete-btn' onclick="editItem('${item}')">[修改]</span>`;
         itemList.appendChild(li);
@@ -202,7 +198,7 @@
 
       for (const monster in window.monsterToItems) {
         const li = document.createElement("li");
-        li.innerHTML = `<span class="clickable" onclick="handleClick('${monster}', 'monster')">${monster}</span>` +
+        li.innerHTML = `<span class="clickable" onclick="handleClick(decodeURIComponent('${encodeURIComponent(monster)}'), 'monster')">${monster}</span>` +
                        `<span class='delete-btn' onclick="deleteMonster('${monster}')">[刪除]</span>`;
         monsterList.appendChild(li);
       }
@@ -236,7 +232,7 @@
         }
         html += `
           <div class="card">
-            <h4 class="clickable" onclick="handleClick('${entry}', '${isItem ? 'item' : 'monster'}')">${img}${entry}</h4>
+            <h4 class="clickable" onclick="handleClick(decodeURIComponent('${encodeURIComponent(entry)}'), '${isItem ? 'item' : 'monster'}')">${img}${entry}</h4>
             ${subtitle ? `<div>${subtitle}</div>` : ''}
           </div>
         `;
@@ -269,9 +265,9 @@
 
   <h2>新增或修改資料</h2>
   <p>道具名稱（含ID）：</p>
-  <textarea id="itemSingleInput" placeholder="道具"></textarea>
+  <textarea id="itemSingleInput" placeholder="上衣力量卷軸70%(2040406)"></textarea>
   <p>掉落此道具的怪物（用、分隔）：</p>
-  <textarea id="monstersForItemInput" placeholder="怪物"></textarea>
+  <textarea id="monstersForItemInput" placeholder="蜈蚣大王、藍色蘑菇王、樹妖王"></textarea>
   <button onclick="addSingleEntry()">加入資料</button>
   <button onclick="updateEntry()">更新資料</button>
 
