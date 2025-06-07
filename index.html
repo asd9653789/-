@@ -49,7 +49,7 @@
   <!-- Firebase SDK -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getDatabase, ref, set, get, child, remove, update } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+    import { getDatabase, ref, set, get } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyDA89wQdeacurqcrdFUs3PRNteUnT7GKS8",
@@ -131,7 +131,16 @@
       const resultBox = document.getElementById("resultBox");
       const label = type === 'item' ? '掉落怪物' : '掉落道具';
       resultBox.innerHTML = `<strong>${name}</strong><br>🔗 ${label}：<ul>` +
-        list.map(e => `<li>${e}</li>`).join('') + '</ul>';
+        list.map(e => `<li class='clickable' onclick="handleClick('${e}', '${type === 'item' ? 'monster' : 'item'}')">${e}</li>`).join('') + '</ul>';
+    }
+
+    window.handleClick = function (name, type) {
+      const list = type === 'item' ? itemToMonsters[name] : monsterToItems[name];
+      if (list) {
+        showResult(name, list, type);
+      } else {
+        document.getElementById("resultBox").innerHTML = `❌ 查無資料：${name}`;
+      }
     }
 
     window.deleteItem = async function (item) {
