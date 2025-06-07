@@ -46,42 +46,42 @@
       cursor: pointer;
     }
   </style>
-</head>
-<body>
-  <h1>道具與怪物掉落查詢系統</h1>
+  <!-- Firebase SDK -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getDatabase, ref, set, get, child, remove, update } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
-  <div>
-    <h2>輸入資料</h2>
-    <p><strong>輸入一筆資料</strong></p>
-    <p>道具名稱(ID)：</p>
-    <textarea id="itemSingleInput" placeholder="上衣力量卷軸70%(2040406)"></textarea>
-    <p>掉落該道具的怪物（用、分隔）：</p>
-    <textarea id="monstersForItemInput" placeholder="蜈蚣大王、藍色蘑菇王、樹妖王"></textarea>
-    <button onclick="addSingleEntry()">加入資料</button>
-    <button onclick="updateEntry()">更新資料</button>
-  </div>
+    const firebaseConfig = {
+      apiKey: "AIzaSyDA89wQdeacurqcrdFUs3PRNteUnT7GKS8",
+      authDomain: "leeeo-91be5.firebaseapp.com",
+      databaseURL: "https://leeeo-91be5-default-rtdb.firebaseio.com",
+      projectId: "leeeo-91be5",
+      storageBucket: "leeeo-91be5.firebasestorage.app",
+      messagingSenderId: "770145678642",
+      appId: "1:770145678642:web:88f73a986123350911532b",
+      measurementId: "G-NGCR9KRKHK"
+    };
 
-  <div class="container">
-    <div class="list">
-      <h3>📦 道具列表</h3>
-      <ul id="itemList"></ul>
-    </div>
-    <div class="list">
-      <h3>👾 怪物列表</h3>
-      <ul id="monsterList"></ul>
-    </div>
-  </div>
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
 
-  <div class="result" id="resultBox">
-    🔍 點擊道具或怪物查看相關資料
-  </div>
-
-  <script>
     let itemToMonsters = {};
     let monsterToItems = {};
     let editingItem = null;
 
-    function addSingleEntry() {
+    async function loadData() {
+      const snapshot = await get(ref(db, '/'));
+      const data = snapshot.val() || {};
+      itemToMonsters = data.itemToMonsters || {};
+      monsterToItems = data.monsterToItems || {};
+      updateLists();
+    }
+
+    async function saveData() {
+      await set(ref(db, '/'), { itemToMonsters, monsterToItems });
+    }
+
+    window.addSingleEntry = async function () {
       const item = document.getElementById("itemSingleInput").value.trim();
       const monstersStr = document.getElementById("monstersForItemInput").value.trim();
       if (!item || !monstersStr) return;
@@ -97,6 +97,7 @@
         }
       });
 
+      await saveData();
       updateLists();
 
       document.getElementById("itemSingleInput").value = '';
@@ -126,14 +127,14 @@
       }
     }
 
-    function showResult(name, list, type) {
+    window.showResult = function (name, list, type) {
       const resultBox = document.getElementById("resultBox");
       const label = type === 'item' ? '掉落怪物' : '掉落道具';
       resultBox.innerHTML = `<strong>${name}</strong><br>🔗 ${label}：<ul>` +
         list.map(e => `<li>${e}</li>`).join('') + '</ul>';
     }
 
-    function deleteItem(item) {
+    window.deleteItem = async function (item) {
       if (confirm(`確定要刪除道具：${item}？`)) {
         const monsters = itemToMonsters[item] || [];
         delete itemToMonsters[item];
@@ -143,12 +144,13 @@
             if (monsterToItems[monster].length === 0) delete monsterToItems[monster];
           }
         });
+        await saveData();
         updateLists();
         document.getElementById("resultBox").innerHTML = '✅ 已刪除道具';
       }
     }
 
-    function deleteMonster(monster) {
+    window.deleteMonster = async function (monster) {
       if (confirm(`確定要刪除怪物：${monster}？`)) {
         const items = monsterToItems[monster] || [];
         delete monsterToItems[monster];
@@ -158,23 +160,56 @@
             if (itemToMonsters[item].length === 0) delete itemToMonsters[item];
           }
         });
+        await saveData();
         updateLists();
         document.getElementById("resultBox").innerHTML = '✅ 已刪除怪物';
       }
     }
 
-    function editItem(item) {
+    window.editItem = function (item) {
       const monsters = itemToMonsters[item];
       document.getElementById("itemSingleInput").value = item;
       document.getElementById("monstersForItemInput").value = monsters.join("、");
       editingItem = item;
     }
 
-    function updateEntry() {
+    window.updateEntry = function () {
       if (!editingItem) return alert("請先選擇要修改的道具");
-      deleteItem(editingItem);
-      addSingleEntry();
+      deleteItem(editingItem).then(() => {
+        addSingleEntry();
+      });
     }
+
+    loadData();
   </script>
+</head>
+<body>
+  <h1>道具與怪物掉落查詢系統</h1>
+
+  <div>
+    <h2>輸入資料</h2>
+    <p><strong>輸入一筆資料</strong></p>
+    <p>道具名稱(ID)：</p>
+    <textarea id="itemSingleInput" placeholder="上衣力量卷軸70%(2040406)"></textarea>
+    <p>掉落該道具的怪物（用、分隔）：</p>
+    <textarea id="monstersForItemInput" placeholder="蜈蚣大王、藍色蘑菇王、樹妖王"></textarea>
+    <button onclick="addSingleEntry()">加入資料</button>
+    <button onclick="updateEntry()">更新資料</button>
+  </div>
+
+  <div class="container">
+    <div class="list">
+      <h3>📦 道具列表</h3>
+      <ul id="itemList"></ul>
+    </div>
+    <div class="list">
+      <h3>👾 怪物列表</h3>
+      <ul id="monsterList"></ul>
+    </div>
+  </div>
+
+  <div class="result" id="resultBox">
+    🔍 點擊道具或怪物查看相關資料
+  </div>
 </body>
 </html>
