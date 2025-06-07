@@ -45,6 +45,12 @@
       margin-left: 10px;
       cursor: pointer;
     }
+    img.item-icon {
+      vertical-align: middle;
+      width: 32px;
+      height: 32px;
+      margin-right: 5px;
+    }
   </style>
   <!-- Firebase SDK -->
   <script type="module">
@@ -130,8 +136,21 @@
     window.showResult = function (name, list, type) {
       const resultBox = document.getElementById("resultBox");
       const label = type === 'item' ? '掉落怪物' : '掉落道具';
-      resultBox.innerHTML = `<strong>${name}</strong><br>🔗 ${label}：<ul>` +
-        list.map(e => `<li class='clickable' onclick="handleClick('${e}', '${type === 'item' ? 'monster' : 'item'}')">${e}</li>`).join('') + '</ul>';
+
+      let html = `<strong>${name}</strong><br>🔗 ${label}：<ul>`;
+      list.forEach(e => {
+        if (type === 'monster') {
+          const match = e.match(/\((\d+)\)$/);
+          const id = match ? match[1] : null;
+          const icon = id ? `<img class='item-icon' src='https://maplestory.io/api/GMS/64/item/${id}/icon' alt='icon'>` : '';
+          html += `<li class='clickable' onclick="handleClick('${e}', 'item')">${icon}${e}</li>`;
+        } else {
+          html += `<li class='clickable' onclick="handleClick('${e}', 'monster')">${e}</li>`;
+        }
+      });
+      html += '</ul>';
+
+      resultBox.innerHTML = html;
     }
 
     window.handleClick = function (name, type) {
