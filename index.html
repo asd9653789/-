@@ -128,7 +128,7 @@
       const item = document.getElementById("itemSingleInput").value.trim();
       const monstersStr = document.getElementById("monstersForItemInput").value.trim();
       if (!item || !monstersStr) return;
-      const monsters = monstersStr.split("、").map(m => m.trim());
+      const monsters = monstersStr.split(/\s+/).map(m => m.trim());
 
       window.itemToMonsters[item] = monsters;
       monsters.forEach(monster => {
@@ -187,7 +187,7 @@
     window.editItem = function (item) {
       const monsters = window.itemToMonsters[item];
       document.getElementById("itemSingleInput").value = item;
-      document.getElementById("monstersForItemInput").value = monsters.join("、");
+      document.getElementById("monstersForItemInput").value = monsters.join(" ");
       window.editingItem = item;
     };
 
@@ -296,12 +296,12 @@
     道具名稱（含ID）：
     <button onclick="document.getElementById('itemSingleInput').value = ''">清除</button>
   </p>
-  <textarea id="itemSingleInput" placeholder="道具(道具代碼)"></textarea>
+  <textarea id="itemSingleInput" placeholder="道具名稱(道具代碼)"></textarea>
   <p>
-    掉落此道具的怪物（用、分隔）：
+    掉落此道具的怪物（用空格分隔）：
     <button onclick="document.getElementById('monstersForItemInput').value = ''">清除</button>
   </p>
-  <textarea id="monstersForItemInput" placeholder="怪物A(怪物A代碼)、怪物B(怪物B代碼)"></textarea>
+  <textarea id="monstersForItemInput" placeholder="怪物A名稱(怪物A代碼) 怪物B名稱(怪物B代碼)"></textarea>
 
   <button onclick="addSingleEntry()">加入資料</button>
   <button onclick="updateEntry()">更新資料</button>
