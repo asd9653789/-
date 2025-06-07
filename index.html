@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8">
-  <title>掉落查詢系統</title>
+  <title>大調查系統</title>
   <style>
     body {
       font-family: sans-serif;
@@ -287,7 +287,7 @@
   </script>
 </head>
 <body>
-  <h1>道具與怪物掉落查詢系統</h1>
+  <h1>大調查系統</h1>
   <input type="text" id="searchInput" placeholder="🔍 搜尋道具或怪物..." oninput="filterList()" />
 
   <h2>新增或修改資料</h2>
@@ -296,12 +296,12 @@
     道具名稱（含ID）：
     <button onclick="document.getElementById('itemSingleInput').value = ''">清除</button>
   </p>
-  <textarea id="itemSingleInput" placeholder="上衣力量卷軸70%(2040406)"></textarea>
+  <textarea id="itemSingleInput" placeholder="道具(道具代碼)"></textarea>
   <p>
     掉落此道具的怪物（用、分隔）：
     <button onclick="document.getElementById('monstersForItemInput').value = ''">清除</button>
   </p>
-  <textarea id="monstersForItemInput" placeholder="藍色蘑菇王(8220007)、樹妖王(8220003)"></textarea>
+  <textarea id="monstersForItemInput" placeholder="怪物A(怪物A代碼)、怪物B(怪物B代碼)"></textarea>
 
   <button onclick="addSingleEntry()">加入資料</button>
   <button onclick="updateEntry()">更新資料</button>
