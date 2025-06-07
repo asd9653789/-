@@ -213,34 +213,60 @@
       }
     };
 
-    window.showResult = function (name, list, type) {
-      const resultBox = document.getElementById("resultBox");
-      const isItem = type === 'item';
-      const label = isItem ? '掉落怪物' : '掉落道具';
+    
 
-      let html = `<h3>🔍 ${label}：<span style="color: #0af">${name}</span></h3><div class="card-grid">`;
+window.showResult = function (name, list, type) {
+  const resultBox = document.getElementById("resultBox");
+  const isItem = type === 'item';
+  const label = isItem ? '掉落怪物' : '掉落道具';
 
-      list.forEach(entry => {
-        let id = null, img = '', subtitle = '';
-        if (!isItem) {
-          const match = entry.match(/\((\d+)\)$/);
-          if (match) {
-            id = match[1];
-            img = `<img src="https://maplestory.io/api/GMS/64/item/${id}/icon" alt="icon">`;
-            subtitle = `ID: ${id}`;
-          }
-        }
-        html += `
-          <div class="card">
-            <h4 class="clickable" onclick="handleClick(decodeURIComponent('${encodeURIComponent(entry)}'), '${isItem ? 'item' : 'monster'}')">${img}${entry}</h4>
-            ${subtitle ? `<div>${subtitle}</div>` : ''}
-          </div>
-        `;
-      });
+  resultBox.innerHTML = `<h3>🔍 ${label}：<span style="color:#0af">${name}</span></h3>`;
 
-      html += '</div>';
-      resultBox.innerHTML = html;
-    };
+  const grid = document.createElement("div");
+  grid.className = "card-grid";
+
+  list.forEach(entry => {
+    const card = document.createElement("div");
+    card.className = "card";
+
+    const h4 = document.createElement("h4");
+    h4.className = "clickable";
+    h4.innerHTML = `${getEntryImage(entry, type)}${entry}`;
+    h4.addEventListener("click", () => handleClick(entry, isItem ? 'monster' : 'item'));
+
+    card.appendChild(h4);
+
+    const match = entry.match(/\((\d+)\)$/);
+    if (match) {
+      const subtitle = document.createElement("div");
+      subtitle.textContent = `ID: ${match[1]}`;
+      card.appendChild(subtitle);
+    }
+
+    grid.appendChild(card);
+  });
+
+  resultBox.appendChild(grid);
+};
+
+function getEntryImage(entry, type) {
+  const match = entry.match(/\((\d+)\)$/);
+  if (!match) return '';
+  const id = match[1];
+  const base = type === 'item'
+    ? 'https://maplestory.io/api/GMS/64/item/'
+    : 'https://maplestory.io/api/GMS/64/mob/';
+  return `<img src="${base}${id}/icon" alt="icon">`;
+}
+
+
+function getItemImage(entry) {
+  const match = entry.match(/\((\d+)\)$/);
+  if (!match) return '';
+  const id = match[1];
+  return `<img src="https://maplestory.io/api/GMS/64/item/${id}/icon" alt="icon">`;
+}
+
 
     window.filterList = function () {
       const keyword = document.getElementById("searchInput").value.trim();
