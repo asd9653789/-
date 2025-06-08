@@ -275,7 +275,7 @@ window.handleClick = function(name, type) {
         monsterToItems: window.monsterToItems
       }).then(() => {
         updateLists();
-        document.getElementById("itemSingleInput").value = '';
+        //document.getElementById("itemSingleInput").value = '';
         selectedTags = [];
         renderTags();
         alert("✅ 資料已新增");
@@ -309,7 +309,7 @@ window.handleClick = function(name, type) {
     monsterToItems: window.monsterToItems
   }).then(() => {
     updateLists();
-    //document.getElementById("itemSingleInput").value = '';
+    document.getElementById("itemSingleInput").value = '';
     selectedTags = [];
     renderTags();
     alert("✅ 資料已更新");
