@@ -239,7 +239,7 @@ window.handleClick = function(name, type) {
       ? `<div style="margin-top:8px; font-size:14px;">
            ${relatedLabel}：
            <ul style="margin: 4px 0 0 12px; padding: 0; list-style: disc;">
-             ${subList.map(sub => `<li style="margin-bottom:2px;">${sub}</li>`).join('')}
+             ${subList.map(sub => `<li style="margin-bottom:2px;"><span class="clickable" onclick="handleClick('${sub}', '${type === 'item' ? 'item' : 'monster'}')">${sub}</span></li>`).join('')}
            </ul>
          </div>`
       : '';
@@ -375,6 +375,32 @@ function updateLists() {
     }
 
     loadData();
+window.filterList = function () {
+  const keyword = document.getElementById('searchInput').value.trim().toLowerCase();
+  const filterFn = (name) => name.toLowerCase().includes(keyword);
+
+  itemList.innerHTML = '';
+  monsterList.innerHTML = '';
+
+  Object.keys(window.itemToMonsters)
+    .filter(filterFn)
+    .sort()
+    .forEach(item => {
+      const li = document.createElement("li");
+      li.innerHTML = `<span class="clickable" onclick="handleClick('${item}', 'item')">${item}</span> <button onclick="deleteEntry('${item}', 'item')">🗑</button> <button onclick="editEntry('${item}')">✏️</button>`;
+      itemList.appendChild(li);
+    });
+
+  Object.keys(window.monsterToItems)
+    .filter(filterFn)
+    .sort()
+    .forEach(monster => {
+      const li = document.createElement("li");
+      li.innerHTML = `<span class="clickable" onclick="handleClick('${monster}', 'monster')">${monster}</span> <button onclick="deleteEntry('${monster}', 'monster')">🗑</button>`;
+      monsterList.appendChild(li);
+    });
+};
+
   </script>
 </body>
 </html>
