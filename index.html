@@ -5,220 +5,81 @@
   <title>大調查系統</title>
   <style>
     body { font-family: sans-serif; margin: 20px; background: #111; color: #eee; }
-    input, textarea, button { font-size: 16px; padding: 6px; margin: 4px 0; }
-    textarea { width: 100%; height: 60px; }
-    .container { display: flex; gap: 40px; margin-top: 20px; }
-    .list { width: 45%; }
-    ul { list-style: none; padding: 0; }
-    li { margin: 4px 0; }
+    h1, h2, h3 { color: #6bf; text-shadow: 0 0 3px #0cf; }
+    input, textarea, button, select { font-size: 16px; padding: 6px; margin: 4px 0; }
+    button {
+      background: #2a2a2a;
+      color: #eee;
+      border: 1px solid #555;
+      border-radius: 6px;
+      padding: 6px 12px;
+      transition: 0.2s;
+    }
+    button:hover {
+      background: #444;
+      color: #6bf;
+    }
+    textarea, input[type='text'] {
+      background: #1b1b1b;
+      border: 1px solid #444;
+      border-radius: 6px;
+      color: #eee;
+    }
+    .tag-input-wrapper { display: flex; flex-wrap: wrap; gap: 6px; border: 1px solid #444; padding: 6px; min-height: 36px; background: #222; cursor: text; }
+    .tag-input-wrapper input { flex: 1; background: #222; color: white; border: none; outline: none; }
+    .tag { background: #444; color: white; padding: 4px 8px; border-radius: 6px; display: flex; align-items: center; }
+    .tag span { margin-left: 6px; cursor: pointer; }
+    .suggestions { background: #222; border: 1px solid #444; max-height: 150px; overflow-y: auto; position: absolute; z-index: 10; width: 300px; }
+    .suggestion { padding: 6px; cursor: pointer; border-radius: 4px; }
+    .suggestion:hover { background: #333; }
     .clickable { color: #4ae; cursor: pointer; text-decoration: underline; }
-    .delete-btn { color: red; margin-left: 10px; cursor: pointer; }
-    .result { margin-top: 30px; }
     .card-grid { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 10px; }
-    .card { background: #1e1e1e; color: white; padding: 16px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.4); width: 220px; }
+    .card { background: #1e1e1e; color: white; padding: 16px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.4); width: 220px; transition: transform 0.2s; }
+    .card:hover { transform: scale(1.03); }
     .card h4 { margin-top: 0; font-size: 18px; border-bottom: 1px solid #555; padding-bottom: 5px; }
     .item-icon { width: 32px; height: 32px; vertical-align: middle; margin-right: 5px; }
     .monster-icon { width: 64px; height: 64px; vertical-align: middle; margin-right: 5px; }
-    .card li { list-style: none; margin: 6px 0; }
-  </style>
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getDatabase, ref, set, get } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyDA89wQdeacurqcrdFUs3PRNteUnT7GKS8",
-      authDomain: "leeeo-91be5.firebaseapp.com",
-      databaseURL: "https://leeeo-91be5-default-rtdb.firebaseio.com",
-      projectId: "leeeo-91be5",
-      storageBucket: "leeeo-91be5.appspot.com",
-      messagingSenderId: "770145678642",
-      appId: "1:770145678642:web:88f73a986123350911532b",
-      measurementId: "G-NGCR9KRKHK"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
-    window.itemToMonsters = {};
-    window.monsterToItems = {};
-    window.editingItem = null;
-
-    async function loadData() {
-      const snapshot = await get(ref(db, '/'));
-      const data = snapshot.val() || {};
-      window.itemToMonsters = data.itemToMonsters || {};
-      window.monsterToItems = data.monsterToItems || {};
-      updateLists();
-    }
-
-    window.toggleList = function(id) {
-      const ul = document.getElementById(id);
-      const header = ul.previousElementSibling;
-      if (ul.style.display === 'none') {
-        ul.style.display = '';
-        header.innerHTML = header.innerHTML.replace('▶', '▼');
-      } else {
-        ul.style.display = 'none';
-        header.innerHTML = header.innerHTML.replace('▼', '▶');
-      }
-    };
-
-    async function saveData() {
-      await set(ref(db, '/'), {
-        itemToMonsters: window.itemToMonsters,
-        monsterToItems: window.monsterToItems
-      });
-    }
-
-    window.addSingleEntry = async function () {
-      const item = document.getElementById("itemSingleInput").value.trim();
-      const monstersStr = document.getElementById("monstersForItemInput").value.trim();
-      if (!item || !monstersStr) return;
-      const monsters = monstersStr.split(/\s+/).map(m => m.trim());
-
-      window.itemToMonsters[item] = monsters;
-      monsters.forEach(monster => {
-        if (!window.monsterToItems[monster]) window.monsterToItems[monster] = [];
-        if (!window.monsterToItems[monster].includes(item)) {
-          window.monsterToItems[monster].push(item);
-        }
-      });
-
-      await saveData();
-      updateLists();
-      window.editingItem = null;
-    };
-
-    window.updateEntry = function () {
-      if (!window.editingItem) return alert("請先選擇要修改的道具");
-      window.deleteItem(window.editingItem).then(() => {
-        window.addSingleEntry();
-      });
-    };
-
-    window.deleteItem = async function (item) {
-      const monsters = window.itemToMonsters[item] || [];
-      delete window.itemToMonsters[item];
-      monsters.forEach(monster => {
-        if (window.monsterToItems[monster]) {
-          window.monsterToItems[monster] = window.monsterToItems[monster].filter(i => i !== item);
-          if (window.monsterToItems[monster].length === 0) delete window.monsterToItems[monster];
-        }
-      });
-      await saveData();
-      updateLists();
-    };
-
-    window.deleteMonster = async function (monster) {
-      const items = window.monsterToItems[monster] || [];
-      delete window.monsterToItems[monster];
-      items.forEach(item => {
-        if (window.itemToMonsters[item]) {
-          window.itemToMonsters[item] = window.itemToMonsters[item].filter(m => m !== monster);
-          if (window.itemToMonsters[item].length === 0) delete window.itemToMonsters[item];
-        }
-      });
-      await saveData();
-      updateLists();
-    };
-
-    window.editItem = function (item) {
-      const monsters = window.itemToMonsters[item];
-      document.getElementById("itemSingleInput").value = item;
-      document.getElementById("monstersForItemInput").value = monsters.join(" ");
-      window.editingItem = item;
-    };
-
-    function updateLists() {
-      const itemList = document.getElementById("itemList");
-      const monsterList = document.getElementById("monsterList");
-      itemList.innerHTML = '';
-      monsterList.innerHTML = '';
-
-      Object.keys(window.itemToMonsters).sort().forEach(item => {
-        const li = document.createElement("li");
-        li.innerHTML = `<span class="clickable" onclick="handleClick('${item}', 'item')">${item}</span>` +
-                       `<span class='delete-btn' onclick="deleteItem('${item}')">[刪除]</span>` +
-                       `<span class='delete-btn' onclick="editItem('${item}')">[修改]</span>`;
-        itemList.appendChild(li);
-      });
-
-      Object.keys(window.monsterToItems).sort().forEach(monster => {
-        const li = document.createElement("li");
-        li.innerHTML = `<span class="clickable" onclick="handleClick('${monster}', 'monster')">${monster}</span>` +
-                       `<span class='delete-btn' onclick="deleteMonster('${monster}')">[刪除]</span>`;
-        monsterList.appendChild(li);
-      });
-    }
-
-    function getItemImage(entry) {
-      const match = entry.match(/\((\d+)\)$/);
-      if (!match) return '';
-      const id = match[1];
-      return `<img class="item-icon" src="https://maplestory.io/api/GMS/64/item/${id}/icon" alt="item">`;
-    }
-
-    function getMonsterImage(entry) {
-      const match = entry.match(/\((\d+)\)$/);
-      if (!match) return '';
-      const id = match[1];
-      return `<img class="monster-icon" src="https://maplestory.io/api/GMS/64/mob/${id}/icon" alt="monster">`;
-    }
-
-    window.showResult = function (name, list, type) {
-      const resultBox = document.getElementById("resultBox");
-      const isItem = type === 'item';
-      const label = isItem ? '掉落怪物' : '掉落道具';
-      resultBox.innerHTML = `<h3>🔍 ${label}：<span style="color:#0af">${name}</span></h3>`;
-
-      const grid = document.createElement("div");
-      grid.className = "card-grid";
-      list.forEach(entry => {
-        const card = document.createElement("div");
-        card.className = "card";
-        const h4 = document.createElement("h4");
-        h4.className = "clickable";
-        h4.innerHTML = `${isItem ? getMonsterImage(entry) : getItemImage(entry)}${entry}`;
-        h4.addEventListener("click", () => handleClick(entry, isItem ? 'monster' : 'item'));
-        card.appendChild(h4);
-
-        const match = entry.match(/\((\d+)\)$/);
-        if (match) {
-          const subtitle = document.createElement("div");
-          subtitle.textContent = `ID: ${match[1]}`;
-          card.appendChild(subtitle);
-        }
-
-        grid.appendChild(card);
-      });
-
-      resultBox.appendChild(grid);
-    };
-
-    window.handleClick = function (name, type) {
-      const list = type === 'item' ? window.itemToMonsters[name] : window.monsterToItems[name];
-      if (list) {
-        window.showResult(name, list, type);
-      } else {
-        document.getElementById("resultBox").innerHTML = `❌ 查無資料：${name}`;
-      }
-    };
-
-    
-    window.filterList = function () {
-      const keyword = document.getElementById("searchInput").value.trim();
-      const itemList = document.getElementById("itemList");
-      const monsterList = document.getElementById("monsterList");
-
-      [...itemList.children].forEach(li => {
-        li.style.display = li.innerText.includes(keyword) ? '' : 'none';
-      });
-      [...monsterList.children].forEach(li => {
-        li.style.display = li.innerText.includes(keyword) ? '' : 'none';
-      });
-    };
-
-    loadData();
-  </script>
+    .container { display: flex; justify-content: space-between; gap: 40px; margin-top: 20px; }
+    .list {
+  flex: 1;
+  max-height: 400px;
+  overflow-y: auto;
+  padding-right: 10px;
+}
+    ul li { padding: 4px 0; border-bottom: 1px dashed #333; }
+    ul li:hover {
+    background: #1c1c1c;
+    border-radius: 6px;
+  }
+  .card:hover {
+    transform: scale(1.03);
+    box-shadow: 0 0 10px #0af;
+  }
+  .suggestions {
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.6);
+    border-radius: 6px;
+  }
+  .list::-webkit-scrollbar {
+    width: 8px;
+  }
+  .list::-webkit-scrollbar-thumb {
+    background: #444;
+    border-radius: 4px;
+  }
+  .list::-webkit-scrollbar-thumb:hover {
+    background: #666;
+  }
+  .tag {
+    transition: background 0.3s;
+  }
+  .tag:hover {
+    background: #6bf;
+    color: black;
+  }
+  .tag span:hover {
+    color: red;
+  }
+</style>
 </head>
 <body>
   <h1>大調查系統</h1>
@@ -227,8 +88,13 @@
   <h2>新增或修改資料</h2>
   <p>道具名稱（含ID）：<button onclick="document.getElementById('itemSingleInput').value = ''">清除</button></p>
   <textarea id="itemSingleInput" placeholder="道具(道具代碼)"></textarea>
-  <p>掉落此道具的怪物（用空格分隔）：<button onclick="document.getElementById('monstersForItemInput').value = ''">清除</button></p>
-  <textarea id="monstersForItemInput" placeholder="怪物A(怪物A代碼) 怪物B(怪物B代碼)"></textarea>
+
+  <p>掉落此道具的怪物：</p>
+  <div class="tag-input-wrapper" id="monsterTagInput">
+    <input id="hiddenInput" type="text" placeholder="輸入怪物名稱..." oninput="showSuggestions()" onkeydown="if(event.key==='Enter'){event.preventDefault();confirmFreeText()}" />
+  </div>
+  <div id="suggestionBox" class="suggestions" style="display:none;"></div>
+
   <button onclick="addSingleEntry()">加入資料</button>
   <button onclick="updateEntry()">更新資料</button>
 
@@ -246,5 +112,269 @@
   <div class="result" id="resultBox">
     🔍 點擊道具或怪物查看相關資料
   </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getDatabase, ref, set, get } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDA89wQdeacurqcrdFUs3PRNteUnT7GKS8",
+      authDomain: "leeeo-91be5.firebaseapp.com",
+      databaseURL: "https://leeeo-91be5-default-rtdb.firebaseio.com",
+      projectId: "leeeo-91be5",
+      storageBucket: "leeeo-91be5.appspot.com",
+      messagingSenderId: "770145678642",
+      appId: "1:770145678642:web:88f73a986123350911532b",
+      measurementId: "G-NGCR9KRKHK"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    window.itemToMonsters = {};
+    window.monsterToItems = {};
+    let editingItem = null;
+
+    const tagInput = document.getElementById('monsterTagInput');
+    const hiddenInput = document.getElementById('hiddenInput');
+    const suggestionBox = document.getElementById('suggestionBox');
+    const itemList = document.getElementById("itemList");
+    const monsterList = document.getElementById("monsterList");
+    let selectedTags = [];
+
+    function renderTags() {
+      tagInput.innerHTML = '';
+      selectedTags.forEach(monster => {
+        const tag = document.createElement('div');
+        tag.className = 'tag';
+        tag.innerHTML = monster + '<span onclick="removeTag(\'' + monster + '\')">×</span>';
+        tagInput.appendChild(tag);
+      });
+      tagInput.appendChild(hiddenInput);
+    }
+
+    window.removeTag = function(name) {
+      selectedTags = selectedTags.filter(tag => tag !== name);
+      renderTags();
+    };
+
+    window.showSuggestions = function () {
+      const inputValue = hiddenInput.value.trim();
+      const lastToken = inputValue.split(/\s+/).pop().toLowerCase();
+      if (!lastToken) {
+        suggestionBox.style.display = 'none';
+        return;
+      }
+      const allNames = Object.keys(window.monsterToItems || {});
+      const matches = allNames.filter(name => {
+        const normalized = name.toLowerCase();
+        const stripped = normalized.replace(/[()]/g, '');
+        return normalized.includes(lastToken) || stripped.includes(lastToken);
+      });
+      if (matches.length === 0) {
+        suggestionBox.style.display = 'none';
+        return;
+      }
+      suggestionBox.innerHTML = matches.map(name => `<div class="suggestion" onclick="selectSuggestion('${name}')">${name}</div>`).join('');
+      suggestionBox.style.display = 'block';
+    };
+
+    window.selectSuggestion = function (name) {
+      if (!selectedTags.includes(name)) selectedTags.push(name);
+      const inputValue = hiddenInput.value.trim();
+      const parts = inputValue.split(/\s+/);
+      parts.pop();
+      hiddenInput.value = parts.join(' ') + (parts.length ? ' ' : '');
+      renderTags();
+      suggestionBox.style.display = 'none';
+      hiddenInput.focus();
+    };
+
+    window.confirmFreeText = function () {
+      const inputValue = hiddenInput.value.trim();
+      if (!inputValue) return;
+      const tokens = inputValue.split(/\s+/);
+      tokens.forEach(token => {
+        if (token && !selectedTags.includes(token)) {
+          selectedTags.push(token);
+        }
+      });
+      hiddenInput.value = '';
+      renderTags();
+      suggestionBox.style.display = 'none';
+      hiddenInput.focus();
+    };
+
+    window.toggleList = function(id) {
+      const ul = document.getElementById(id);
+      if (!ul) return;
+      ul.style.display = ul.style.display === 'none' ? '' : 'none';
+      const h3 = ul.previousElementSibling;
+      if (h3 && h3.tagName === 'H3') {
+        h3.innerHTML = h3.innerHTML.includes('▶') ? h3.innerHTML.replace('▶', '▼') : h3.innerHTML.replace('▼', '▶');
+      }
+    };
+
+window.handleClick = function(name, type) {
+  const resultBox = document.getElementById('resultBox');
+  const list = type === 'item' ? window.itemToMonsters[name] : window.monsterToItems[name];
+  if (!list || list.length === 0) {
+    resultBox.innerHTML = `❌ 查無資料：${name}`;
+    return;
+  }
+
+  const label = type === 'item' ? '掉落怪物' : '掉落道具';
+
+  const cardsHtml = list.map(entry => {
+    const match = entry.match(/^(.*)\((\d+)\)$/);
+    const entryName = match ? match[1] : entry;
+    const entryId = match ? match[2] : '';
+    const imgType = type === 'item' ? 'mob' : 'item';
+    const imgSize = type === 'item' ? 'monster-icon' : 'item-icon';
+    const imgUrl = entryId ? `https://maplestory.io/api/GMS/253/${imgType}/${entryId}/icon` : '';
+
+    const subList = type === 'item' ? window.monsterToItems[entry] : window.itemToMonsters[entry];
+    const relatedLabel = type === 'item' ? '掉落道具' : '掉落怪物';
+    const relatedHtml = subList && subList.length > 0
+      ? `<div style="margin-top:8px; font-size:14px;">
+           ${relatedLabel}：
+           <ul style="margin: 4px 0 0 12px; padding: 0; list-style: disc;">
+             ${subList.map(sub => `<li style="margin-bottom:2px;">${sub}</li>`).join('')}
+           </ul>
+         </div>`
+      : '';
+
+    return `<div class='card'>
+              ${imgUrl ? `<img src='${imgUrl}' class='${imgSize}' />` : ''}
+              <h4 class='clickable' onclick="handleClick('${entry}', '${type === 'item' ? 'monster' : 'item'}')">${entry}</h4>
+              ${relatedHtml}
+            </div>`;
+  }).join('');
+
+  resultBox.innerHTML = `<h3>🔍 ${label}：<span style='color:#0af'>${name}</span></h3><div class='card-grid'>${cardsHtml}</div>`;
+};
+
+
+
+    window.addSingleEntry = function () {
+      const item = document.getElementById("itemSingleInput").value.trim();
+      if (!item) return;
+      const monsters = [...selectedTags];
+      if (!window.itemToMonsters[item]) window.itemToMonsters[item] = [];
+      monsters.forEach(monster => {
+        if (!window.itemToMonsters[item].includes(monster)) {
+          window.itemToMonsters[item].push(monster);
+        }
+        if (!window.monsterToItems[monster]) window.monsterToItems[monster] = [];
+        if (!window.monsterToItems[monster].includes(item)) {
+          window.monsterToItems[monster].push(item);
+        }
+      });
+      set(ref(db), {
+        itemToMonsters: window.itemToMonsters,
+        monsterToItems: window.monsterToItems
+      }).then(() => {
+        updateLists();
+        document.getElementById("itemSingleInput").value = '';
+        selectedTags = [];
+        renderTags();
+        alert("✅ 資料已新增");
+      });
+    };
+
+    window.updateEntry = function () {
+  const item = document.getElementById("itemSingleInput").value.trim();
+  if (!item) return;
+  const monsters = [...selectedTags];
+
+  // 清除原本怪物對應的這個道具
+  for (const monster in window.monsterToItems) {
+    window.monsterToItems[monster] = window.monsterToItems[monster].filter(i => i !== item);
+    if (window.monsterToItems[monster].length === 0) {
+      delete window.monsterToItems[monster];
+    }
+  }
+
+  // 設定新的資料
+  window.itemToMonsters[item] = monsters;
+  monsters.forEach(monster => {
+    if (!window.monsterToItems[monster]) window.monsterToItems[monster] = [];
+    if (!window.monsterToItems[monster].includes(item)) {
+      window.monsterToItems[monster].push(item);
+    }
+  });
+
+  set(ref(db), {
+    itemToMonsters: window.itemToMonsters,
+    monsterToItems: window.monsterToItems
+  }).then(() => {
+    updateLists();
+    document.getElementById("itemSingleInput").value = '';
+    selectedTags = [];
+    renderTags();
+    alert("✅ 資料已更新");
+  });
+};
+
+window.deleteEntry = function(name, type) {
+  if (!confirm(`確定要刪除 ${name} 的資料嗎？`)) return;
+
+  if (type === 'item') {
+    const monsters = window.itemToMonsters[name] || [];
+    delete window.itemToMonsters[name];
+    monsters.forEach(monster => {
+      window.monsterToItems[monster] = (window.monsterToItems[monster] || []).filter(i => i !== name);
+      if (window.monsterToItems[monster].length === 0) delete window.monsterToItems[monster];
+    });
+  } else {
+    const items = window.monsterToItems[name] || [];
+    delete window.monsterToItems[name];
+    items.forEach(item => {
+      window.itemToMonsters[item] = (window.itemToMonsters[item] || []).filter(m => m !== name);
+      if (window.itemToMonsters[item].length === 0) delete window.itemToMonsters[item];
+    });
+  }
+
+  set(ref(db), {
+    itemToMonsters: window.itemToMonsters,
+    monsterToItems: window.monsterToItems
+  }).then(() => {
+    updateLists();
+    alert('✅ 資料已刪除');
+  });
+};
+
+window.editEntry = function(itemName) {
+  document.getElementById("itemSingleInput").value = itemName;
+  selectedTags = [...(window.itemToMonsters[itemName] || [])];
+  renderTags();
+  hiddenInput.focus();
+};
+
+function updateLists() {
+      itemList.innerHTML = '';
+      monsterList.innerHTML = '';
+      Object.keys(window.itemToMonsters).sort().forEach(item => {
+        const li = document.createElement("li");
+        li.innerHTML = `<span class="clickable" onclick="handleClick('${item}', 'item')">${item}</span> <button onclick="deleteEntry('${item}', 'item')">🗑</button> <button onclick="editEntry('${item}')">✏️</button>`;
+        itemList.appendChild(li);
+      });
+      Object.keys(window.monsterToItems).sort().forEach(monster => {
+        const li = document.createElement("li");
+        li.innerHTML = `<span class="clickable" onclick="handleClick('${monster}', 'monster')">${monster}</span> <button onclick="deleteEntry('${monster}', 'monster')">🗑</button>`;
+        monsterList.appendChild(li);
+      });
+    }
+
+    async function loadData() {
+      const snapshot = await get(ref(db, '/'));
+      const data = snapshot.val() || {};
+      window.itemToMonsters = data.itemToMonsters || {};
+      window.monsterToItems = data.monsterToItems || {};
+      updateLists();
+    }
+
+    loadData();
+  </script>
 </body>
 </html>
