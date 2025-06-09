@@ -223,7 +223,7 @@ window.handleClick = function(name, type) {
     return;
   }
 
-  const label = type === 'item' ? '掉落怪物' : '掉落道具';
+  const label = type === 'item' ? '出自怪物' : '掉落道具';
 
   const cardsHtml = list.map(entry => {
     const match = entry.match(/^(.*)\((\d+)\)$/);
@@ -251,7 +251,13 @@ window.handleClick = function(name, type) {
             </div>`;
   }).join('');
 
-  resultBox.innerHTML = `<h3>🔍 ${label}：<span style='color:#0af'>${name}</span></h3><div class='card-grid'>${cardsHtml}</div>`;
+  const match = name.match(/^(.*)\((\d+)\)$/);
+  const queryId = match ? match[2] : '';
+  const imgType = type === 'item' ? 'item' : 'mob';
+  const imgSize = type === 'item' ? 'item-icon' : 'monster-icon';
+  const queryImg = queryId ? `<img src="https://maplestory.io/api/GMS/253/${imgType}/${queryId}/icon" class="${imgSize}" style="vertical-align:middle;margin-right:8px;">` : '';
+
+resultBox.innerHTML = `<h3>🔍 ${queryImg}<span style='color:#0af'>${name}</span>${label}：</h3><div class='card-grid'>${cardsHtml}</div>`;
 };
 
 
