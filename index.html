@@ -84,31 +84,10 @@
 </head>
 <body>
   <h1>大調查系統</h1>
-<div>
-  <button onclick="exportData()">匯出資料</button>
-  <label style="margin-left:10px;">
-    <input type="file" id="importFile" style="display:none" onchange="importData(event)" />
-    <button onclick="document.getElementById('importFile').click()">匯入資料</button>
-  </label>
-  <button onclick="randomizeDrop()">隨機分配掉落</button>
 
-</div>
 <div style="margin-top:10px;">
   <input type="text" id="searchInput" placeholder="🔍 搜尋道具或怪物..." oninput="filterList()" />
 </div>
-
-  <h2>新增或修改資料</h2>
-  <p>道具名稱（含ID）：<button onclick="document.getElementById('itemSingleInput').value = ''">清除</button></p>
-  <textarea id="itemSingleInput" placeholder="道具(道具代碼)"></textarea>
-
-  <p>掉落此道具的怪物：</p>
-  <div class="tag-input-wrapper" id="monsterTagInput">
-    <input id="hiddenInput" type="text" placeholder="輸入怪物名稱..." oninput="showSuggestions()" onkeydown="if(event.key==='Enter'){event.preventDefault();confirmFreeText()}" />
-  </div>
-  <div id="suggestionBox" class="suggestions" style="display:none;"></div>
-
-  <button onclick="addSingleEntry()">加入資料</button>
-  <button onclick="updateEntry()">更新資料</button>
 
   <div class="container">
     <div class="list">
@@ -274,100 +253,9 @@ resultBox.innerHTML = `<h3>🔍 ${queryImg}<span style='color:#0af'>${name}</spa
 
 
 
-    window.addSingleEntry = function () {
-      const item = document.getElementById("itemSingleInput").value.trim();
-      if (!item) return;
-      const monsters = [...selectedTags];
-      if (!window.itemToMonsters[item]) window.itemToMonsters[item] = [];
-      monsters.forEach(monster => {
-        if (!window.itemToMonsters[item].includes(monster)) {
-          window.itemToMonsters[item].push(monster);
-        }
-        if (!window.monsterToItems[monster]) window.monsterToItems[monster] = [];
-        if (!window.monsterToItems[monster].includes(item)) {
-          window.monsterToItems[monster].push(item);
-        }
-      });
-      set(ref(db), {
-        itemToMonsters: window.itemToMonsters,
-        monsterToItems: window.monsterToItems
-      }).then(() => {
-        updateLists();
-        //document.getElementById("itemSingleInput").value = '';
-        selectedTags = [];
-        renderTags();
-        alert("✅ 資料已新增");
-      });
-    };
+    
+    
 
-    window.updateEntry = function () {
-  const item = document.getElementById("itemSingleInput").value.trim();
-  if (!item) return;
-  const monsters = [...selectedTags];
-
-  // 清除原本怪物對應的這個道具
-  for (const monster in window.monsterToItems) {
-    window.monsterToItems[monster] = window.monsterToItems[monster].filter(i => i !== item);
-    if (window.monsterToItems[monster].length === 0) {
-      delete window.monsterToItems[monster];
-    }
-  }
-
-  // 設定新的資料
-  window.itemToMonsters[item] = monsters;
-  monsters.forEach(monster => {
-    if (!window.monsterToItems[monster]) window.monsterToItems[monster] = [];
-    if (!window.monsterToItems[monster].includes(item)) {
-      window.monsterToItems[monster].push(item);
-    }
-  });
-
-  set(ref(db), {
-    itemToMonsters: window.itemToMonsters,
-    monsterToItems: window.monsterToItems
-  }).then(() => {
-    updateLists();
-    document.getElementById("itemSingleInput").value = '';
-    selectedTags = [];
-    renderTags();
-    alert("✅ 資料已更新");
-  });
-};
-
-window.deleteEntry = function(name, type) {
-  if (!confirm(`確定要刪除 ${name} 的資料嗎？`)) return;
-
-  if (type === 'item') {
-    const monsters = window.itemToMonsters[name] || [];
-    delete window.itemToMonsters[name];
-    monsters.forEach(monster => {
-      window.monsterToItems[monster] = (window.monsterToItems[monster] || []).filter(i => i !== name);
-      if (window.monsterToItems[monster].length === 0) delete window.monsterToItems[monster];
-    });
-  } else {
-    const items = window.monsterToItems[name] || [];
-    delete window.monsterToItems[name];
-    items.forEach(item => {
-      window.itemToMonsters[item] = (window.itemToMonsters[item] || []).filter(m => m !== name);
-      if (window.itemToMonsters[item].length === 0) delete window.itemToMonsters[item];
-    });
-  }
-
-  set(ref(db), {
-    itemToMonsters: window.itemToMonsters,
-    monsterToItems: window.monsterToItems
-  }).then(() => {
-    updateLists();
-    alert('✅ 資料已刪除');
-  });
-};
-
-window.editEntry = function(itemName) {
-  document.getElementById("itemSingleInput").value = itemName;
-  selectedTags = [...(window.itemToMonsters[itemName] || [])];
-  renderTags();
-  hiddenInput.focus();
-};
 
 function updateLists() {
       itemList.innerHTML = '';
@@ -381,12 +269,12 @@ function updateLists() {
   
       Object.keys(window.itemToMonsters).sort().forEach(item => {
         const li = document.createElement("li");
-        li.innerHTML = `<span class="clickable" onclick="handleClick('${item}', 'item')">${item}</span> <button onclick="deleteEntry('${item}', 'item')">🗑</button> <button onclick="editEntry('${item}')">✏️</button>`;
+        li.innerHTML = `<span class="clickable" onclick="handleClick('${item}', 'item')">${item}</span>`;
         itemList.appendChild(li);
       });
       Object.keys(window.monsterToItems).sort().forEach(monster => {
         const li = document.createElement("li");
-        li.innerHTML = `<span class="clickable" onclick="handleClick('${monster}', 'monster')">${monster}</span> <button onclick="deleteEntry('${monster}', 'monster')">🗑</button>`;
+        li.innerHTML = `<span class="clickable" onclick="handleClick('${monster}', 'monster')">${monster}</span>`;
         monsterList.appendChild(li);
       });
     }
@@ -412,7 +300,7 @@ window.filterList = function () {
     .sort()
     .forEach(item => {
       const li = document.createElement("li");
-      li.innerHTML = `<span class="clickable" onclick="handleClick('${item}', 'item')">${item}</span> <button onclick="deleteEntry('${item}', 'item')">🗑</button> <button onclick="editEntry('${item}')">✏️</button>`;
+      li.innerHTML = `<span class="clickable" onclick="handleClick('${item}', 'item')">${item}</span>`;
       itemList.appendChild(li);
     });
 
@@ -421,7 +309,7 @@ window.filterList = function () {
     .sort()
     .forEach(monster => {
       const li = document.createElement("li");
-      li.innerHTML = `<span class="clickable" onclick="handleClick('${monster}', 'monster')">${monster}</span> <button onclick="deleteEntry('${monster}', 'monster')">🗑</button>`;
+      li.innerHTML = `<span class="clickable" onclick="handleClick('${monster}', 'monster')">${monster}</span>`;
       monsterList.appendChild(li);
     });
 };
@@ -484,7 +372,7 @@ window.randomizeDrop = function() {
 
   // 1~7隻怪物掉落每個道具（只會選 validMonsters）
   items.forEach(item => {
-    const n = Math.floor(Math.random() * 5) + 3;
+    const n = Math.floor(Math.random() * 7) + 1;
     const pool = validMonsters.slice();
     const dropMonsters = [];
     for (let i=0; i<n && pool.length; ++i) {
