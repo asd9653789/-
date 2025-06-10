@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>大調查系統</title>
+
   <style>
     body { font-family: sans-serif; margin: 20px; background: #111; color: #eee; }
     h1, h2, h3 { color: #6bf; text-shadow: 0 0 3px #0cf; }
@@ -83,7 +84,18 @@
 </head>
 <body>
   <h1>大調查系統</h1>
+<div>
+  <button onclick="exportData()">匯出資料</button>
+  <label style="margin-left:10px;">
+    <input type="file" id="importFile" style="display:none" onchange="importData(event)" />
+    <button onclick="document.getElementById('importFile').click()">匯入資料</button>
+  </label>
+  <button onclick="randomizeDrop()">隨機分配掉落</button>
+
+</div>
+<div style="margin-top:10px;">
   <input type="text" id="searchInput" placeholder="🔍 搜尋道具或怪物..." oninput="filterList()" />
+</div>
 
   <h2>新增或修改資料</h2>
   <p>道具名稱（含ID）：<button onclick="document.getElementById('itemSingleInput').value = ''">清除</button></p>
@@ -100,12 +112,12 @@
 
   <div class="container">
     <div class="list">
-      <h3 onclick="toggleList('itemList')" style="cursor:pointer;">📦 道具列表 ▼</h3>
-      <ul id="itemList"></ul>
+<h3 id="itemListTitle" onclick="toggleList('itemList')" style="cursor:pointer;">📦 道具列表 ▼</h3>
+<ul id="itemList"></ul>
     </div>
     <div class="list">
-      <h3 onclick="toggleList('monsterList')" style="cursor:pointer;">👾 怪物列表 ▼</h3>
-      <ul id="monsterList"></ul>
+      <h3 id="monsterListTitle" onclick="toggleList('monsterList')" style="cursor:pointer;">👾 怪物列表 ▼</h3>
+<ul id="monsterList"></ul>
     </div>
   </div>
 
@@ -360,6 +372,13 @@ window.editEntry = function(itemName) {
 function updateLists() {
       itemList.innerHTML = '';
       monsterList.innerHTML = '';
+
+  const itemCount = Object.keys(window.itemToMonsters).length;
+  const monsterCount = Object.keys(window.monsterToItems).length;
+  document.getElementById('itemListTitle').innerHTML = `📦 道具列表 (${itemCount}) ▼`;
+  document.getElementById('monsterListTitle').innerHTML = `👾 怪物列表 (${monsterCount}) ▼`;
+
+  
       Object.keys(window.itemToMonsters).sort().forEach(item => {
         const li = document.createElement("li");
         li.innerHTML = `<span class="clickable" onclick="handleClick('${item}', 'item')">${item}</span> <button onclick="deleteEntry('${item}', 'item')">🗑</button> <button onclick="editEntry('${item}')">✏️</button>`;
@@ -405,6 +424,100 @@ window.filterList = function () {
       li.innerHTML = `<span class="clickable" onclick="handleClick('${monster}', 'monster')">${monster}</span> <button onclick="deleteEntry('${monster}', 'monster')">🗑</button>`;
       monsterList.appendChild(li);
     });
+};
+window.exportData = function() {
+  const data = {
+    itemToMonsters: window.itemToMonsters,
+    monsterToItems: window.monsterToItems
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'drop_lookup_backup.json';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => {
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, 100);
+};
+
+window.importData = function(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (data.itemToMonsters && data.monsterToItems) {
+        window.itemToMonsters = data.itemToMonsters;
+        window.monsterToItems = data.monsterToItems;
+        set(ref(db), {
+          itemToMonsters: window.itemToMonsters,
+          monsterToItems: window.monsterToItems
+        }).then(() => {
+          updateLists();
+          alert("✅ 匯入成功！");
+        });
+      } else {
+        alert("❌ 檔案格式錯誤！");
+      }
+    } catch {
+      alert("❌ 檔案解析失敗！");
+    }
+  };
+  reader.readAsText(file);
+  // 清除 file input value，方便重複匯入同一檔案
+  event.target.value = '';
+};
+
+window.randomizeDrop = function() {
+  const items = Object.keys(window.itemToMonsters);
+  const monsters = Object.keys(window.monsterToItems);
+  const validMonsters = monsters.filter(m => m !== '無'); // 只用這些來分配
+
+  // 清空
+  window.itemToMonsters = {};
+  window.monsterToItems = {};
+  monsters.forEach(m => window.monsterToItems[m] = []);
+
+  // 1~7隻怪物掉落每個道具（只會選 validMonsters）
+  items.forEach(item => {
+    const n = Math.floor(Math.random() * 5) + 3;
+    const pool = validMonsters.slice();
+    const dropMonsters = [];
+    for (let i=0; i<n && pool.length; ++i) {
+      const idx = Math.floor(Math.random() * pool.length);
+      dropMonsters.push(pool[idx]);
+      pool.splice(idx,1);
+    }
+    window.itemToMonsters[item] = dropMonsters;
+    dropMonsters.forEach(monster => window.monsterToItems[monster].push(item));
+  });
+
+  // 只針對 validMonsters 確保每隻怪物有道具
+  validMonsters.forEach(monster => {
+    if (window.monsterToItems[monster].length === 0) {
+      const idx = Math.floor(Math.random() * items.length);
+      const item = items[idx];
+      window.monsterToItems[monster].push(item);
+      if (!window.itemToMonsters[item].includes(monster)) {
+        window.itemToMonsters[item].push(monster);
+      }
+    }
+  });
+
+  // "無" 這隻怪物不會掉任何道具
+  window.monsterToItems['無'] = [];
+
+  set(ref(db), {
+    itemToMonsters: window.itemToMonsters,
+    monsterToItems: window.monsterToItems
+  }).then(() => {
+    updateLists();
+    alert("✅ 掉落關聯已重新隨機分配！（無完全不會掉落）");
+  });
 };
 
   </script>
